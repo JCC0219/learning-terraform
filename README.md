@@ -7,11 +7,13 @@ A beginner-friendly sandbox repo for learning Terraform one small section at a t
 - [Repo structure](#repo-structure)
 - [Prerequisites](#prerequisites)
 - [01_basics — create local files](#01_basics--create-local-files)
+- [02_state — work with state](#02_state--work-with-state)
 - [Common Terraform commands](#common-terraform-commands)
 
 ## Repo structure
 
 - `01_basics/`: Your first Terraform config using the **local** provider to create files on your machine.
+- `02_state/`: Learn how Terraform state works and where it is stored.
 
 ## Prerequisites
 
@@ -41,27 +43,101 @@ A beginner-friendly sandbox repo for learning Terraform one small section at a t
 From the repo root:
 
 ```powershell
-# Initialize providers for this section
-terraform -chdir=".\01_basics" init
+$dir = ".\01_basics"
 
-# Show the execution plan
-terraform -chdir=".\01_basics" plan
+terraform -chdir=$dir init
+terraform -chdir=$dir plan
+terraform -chdir=$dir apply
 
-# (Optional) Save a plan to a file
-terraform -chdir=".\01_basics" plan -out ".\plan"
-
-# Apply changes (create/update files)
-terraform -chdir=".\01_basics" apply
-
-# Or apply a previously saved plan file
-terraform -chdir=".\01_basics" apply ".\plan"
+# Optional: save/apply a plan file
+terraform -chdir=$dir plan -out ".\plan"
+terraform -chdir=$dir apply ".\plan"
 ```
 
 ### Clean up (destroy)
 
 ```powershell
-terraform -chdir=".\01_basics" destroy
+$dir = ".\01_basics"
+terraform -chdir=$dir destroy
 ```
+
+Targeted destroy (examples):
+
+```powershell
+$dir = ".\01_basics"
+terraform -chdir=$dir destroy -target="local_file.tf_example1"
+terraform -chdir=$dir destroy -target="local_file.tf_count[0]"
+terraform -chdir=$dir destroy -target="local_sensitive_file.tf_example2"
+```
+
+## 02_state — work with state
+
+### What it does
+
+- Same idea as `01_basics`, but focused on **state**.
+- Creates:
+  - `local_file.example1` → `02_state/example1.txt`
+  - `local_file.example2` → `02_state/example2.txt`
+  - `local_sensitive_file.sensitive` → `02_state/sensitive.txt`
+- Stores state in a **local backend** file:
+  - `02_state/state-file/state-file.tfstate`
+
+### Basic workflow
+
+From the repo root:
+
+```powershell
+$dir = ".\02_state"
+
+terraform -chdir=$dir init
+terraform -chdir=$dir plan
+terraform -chdir=$dir apply
+```
+
+### Inspecting state
+
+```powershell
+$dir = ".\02_state"
+
+# List everything in state
+terraform -chdir=$dir state list
+
+# Show details of one resource
+terraform -chdir=$dir state show local_file.example1
+```
+
+### State drift and `plan`
+
+- **State drift** = real files change outside Terraform (you edit/delete `example1.txt` by hand).
+- Use:
+
+  ```powershell
+  $dir = ".\02_state"
+  terraform -chdir=$dir plan
+  ```
+
+  to see how Terraform wants to fix the drift.
+
+### `refresh` and `init -reconfigure`
+
+- `terraform refresh` is older workflow; modern Terraform refreshes during `plan/apply`, so you usually **don’t need** it:
+
+  ```powershell
+  $dir = ".\02_state"
+  terraform -chdir=$dir refresh   # usually skip; use plan/apply instead
+  ```
+
+- Use `init -reconfigure` if you **change backend settings** (for example, move from local to remote backend):
+
+  ```powershell
+  $dir = ".\02_state"
+  terraform -chdir=$dir init -reconfigure
+  ```
+
+### Local vs remote backend (high level)
+
+- **Local backend** (this repo): state is just a file on your machine.
+- **Remote backend** (real projects): state lives in Terraform Cloud, S3, Azure Storage, GCS, etc., usually with locking and better sharing for teams.
 
 ## Common Terraform commands
 
