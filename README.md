@@ -8,12 +8,14 @@ A beginner-friendly sandbox repo for learning Terraform one small section at a t
 - [Prerequisites](#prerequisites)
 - [01_basics — create local files](#01_basics--create-local-files)
 - [02_state — work with state](#02_state--work-with-state)
+- [03_vars-outputs — variables and outputs](#03_vars-outputs--variables-and-outputs)
 - [Common Terraform commands](#common-terraform-commands)
 
 ## Repo structure
 
 - `01_basics/`: Your first Terraform config using the **local** provider to create files on your machine.
 - `02_state/`: Learn how Terraform state works and where it is stored.
+- `03_vars-outputs/`: Practice using input variables, locals, and outputs to make your config dynamic.
 
 ## Prerequisites
 
@@ -138,6 +140,47 @@ terraform -chdir=$dir state show local_file.example1
 
 - **Local backend** (this repo): state is just a file on your machine.
 - **Remote backend** (real projects): state lives in Terraform Cloud, S3, Azure Storage, GCS, etc., usually with locking and better sharing for teams.
+
+## 03_vars-outputs — variables and outputs
+
+### What it does
+
+- Demonstrates how to use **input variables**, **local values**, and **outputs** to make configurations flexible and reusable.
+- Creates:
+  - Several local files using variable-defined names.
+  - Environment-specific service configurations (`dev`, `stage`, etc.) in a `config/` directory.
+  - Demonstrates path management using `path.module`.
+
+### Key files
+
+- `03_vars-outputs/variable.tf`: Defines input variables with types and defaults.
+- `03_vars-outputs/main.tf`: Contains the resources, local values, and outputs.
+
+### Key concepts
+
+- **Variables (`var.xxx`)**: External inputs you can override.
+- **Locals (`local.xxx`)**: Internal constants or computed values for use within your module.
+- **Outputs**: Values that Terraform prints out after an `apply`.
+- **String Interpolation**: Using `${...}` to embed logic and variables inside strings.
+- **Functions**: Using built-in functions like `upper()` to transform data.
+
+### Workflow
+
+From the repo root:
+
+```powershell
+$dir = ".\03_vars-outputs"
+
+terraform -chdir=$dir init
+terraform -chdir=$dir plan
+terraform -chdir=$dir apply
+```
+
+To override a variable from the command line:
+
+```powershell
+terraform -chdir=$dir plan -var="count_num=3"
+```
 
 ## Common Terraform commands
 
