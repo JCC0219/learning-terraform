@@ -9,6 +9,7 @@ A beginner-friendly sandbox repo for learning Terraform one small section at a t
 - [01_basics — create local files](#01_basics--create-local-files)
 - [02_state — work with state](#02_state--work-with-state)
 - [03_vars-outputs — variables and outputs](#03_vars-outputs--variables-and-outputs)
+- [04_giving_values — variable assignment precedence](#04_giving_values--variable-assignment-precedence)
 - [Common Terraform commands](#common-terraform-commands)
 
 ## Repo structure
@@ -16,6 +17,7 @@ A beginner-friendly sandbox repo for learning Terraform one small section at a t
 - `01_basics/`: Your first Terraform config using the **local** provider to create files on your machine.
 - `02_state/`: Learn how Terraform state works and where it is stored.
 - `03_vars-outputs/`: Practice using input variables, locals, and outputs to make your config dynamic.
+- `04_giving_values/`: Explore different ways to provide values to variables and understand their precedence.
 
 ## Prerequisites
 
@@ -180,6 +182,48 @@ To override a variable from the command line:
 
 ```powershell
 terraform -chdir=$dir plan -var="count_num=3"
+```
+
+## 04_giving_values — variable assignment precedence
+
+### What it does
+
+- Demonstrates the multiple ways to **assign values** to Terraform variables and their **precedence** (which one "wins" if multiple are used).
+- Shows how to override default values defined in `variable.tf`.
+
+### Key files
+
+- `04_giving_values/variable.tf`: Defines the variable with a `default` value.
+- `04_giving_values/terraform.tfvars`: A standard file for assigning values that Terraform loads automatically.
+- `04_giving_values/main.tf`: Uses the variable and demonstrates the syntax.
+
+### Assignment Methods & Precedence
+
+Terraform loads variables in the following order (last one wins):
+
+1.  **Environment Variables**: Prefixed with `TF_VAR_` (e.g., `TF_VAR_filename`).
+2.  **`terraform.tfvars`**: Loaded automatically.
+3.  **`terraform.tfvars.json`**: Loaded automatically.
+4.  **`*.auto.tfvars`**: Loaded automatically in alphabetical order.
+5.  **CLI `-var` or `-var-file` flags**: Highest precedence; overrides everything else.
+
+### Workflow
+
+From the repo root:
+
+```powershell
+$dir = ".\04_giving_values"
+
+# 1. Automatic loading from terraform.tfvars
+terraform -chdir=$dir plan
+
+# 2. Overriding via CLI flag (highest precedence)
+terraform -chdir=$dir plan -var="filename=manual-override"
+
+# 3. Using environment variables
+$env:TF_VAR_filename="from-env"
+terraform -chdir=$dir plan
+Remove-Item Env:\TF_VAR_filename # clean up
 ```
 
 ## Common Terraform commands
