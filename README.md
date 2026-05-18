@@ -10,6 +10,7 @@ A beginner-friendly sandbox repo for learning Terraform one small section at a t
 - [02_state — work with state](#02_state--work-with-state)
 - [03_vars-outputs — variables and outputs](#03_vars-outputs--variables-and-outputs)
 - [04_giving_values — variable assignment precedence](#04_giving_values--variable-assignment-precedence)
+- [05_modules — working with modules](#05_modules--working-with-modules)
 - [Common Terraform commands](#common-terraform-commands)
 
 ## Repo structure
@@ -18,6 +19,7 @@ A beginner-friendly sandbox repo for learning Terraform one small section at a t
 - `02_state/`: Learn how Terraform state works and where it is stored.
 - `03_vars-outputs/`: Practice using input variables, locals, and outputs to make your config dynamic.
 - `04_giving_values/`: Explore different ways to provide values to variables and understand their precedence.
+- `05_modules/`: Understand how to encapsulate and reuse code with modules, outputs, and inputs.
 
 ## Prerequisites
 
@@ -224,6 +226,43 @@ terraform -chdir=$dir plan -var="filename=manual-override"
 $env:TF_VAR_filename="from-env"
 terraform -chdir=$dir plan
 Remove-Item Env:\TF_VAR_filename # clean up
+```
+
+## 05_modules — working with modules
+
+### What it does
+
+- Demonstrates how to create, load, and parameterize a local child **module** (`file_creator`).
+- Creates two text files whose names and contents are defined as inputs to the module.
+- Demonstrates how to pass values in as module inputs and extract return values using module outputs.
+
+### Key files
+
+- `05_modules/main.tf`: The root configuration that calls/instantiates the `file_creator` module and passes in arguments.
+- `05_modules/outputs.tf`: The root output file that consumes and exposes the outputs of the child module to the console.
+- `05_modules/file_creator/`: The child module containing:
+  - `main.tf`: Defines the `local_file` resources.
+  - `variables.tf`: Defines input variables for the module.
+  - `outputs.tf`: Defines outputs returned by the module back to the root configuration.
+
+### Key concepts
+
+- **Modules**: Reusable, self-contained packages of Terraform configurations. A module acts as a "black box" or a function.
+- **Module Inputs**: Defined via `variable` blocks in the child module's `variables.tf` and passed in when calling the module in the root block.
+- **Module Outputs**: Defined via `output` blocks in the child module's `outputs.tf`. These are like "return values".
+- **Accessing Module Outputs**: Access output values of a module in your root configuration using `module.<MODULE_NAME>.<OUTPUT_NAME>` (e.g., `module.file_creator.file1_path`).
+- **File Organization**: Highlights that Terraform loads and merges all `.tf` files in a directory (like root's `main.tf` and `outputs.tf`), so keeping outputs in a separate file works perfectly and keeps code clean.
+
+### Workflow
+
+From the repo root:
+
+```powershell
+$dir = ".\05_modules"
+
+terraform -chdir=$dir init
+terraform -chdir=$dir plan
+terraform -chdir=$dir apply
 ```
 
 ## Common Terraform commands
