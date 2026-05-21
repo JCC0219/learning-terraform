@@ -11,6 +11,7 @@ A beginner-friendly sandbox repo for learning Terraform one small section at a t
 - [03_vars-outputs — variables and outputs](#03_vars-outputs--variables-and-outputs)
 - [04_giving_values — variable assignment precedence](#04_giving_values--variable-assignment-precedence)
 - [05_modules — working with modules](#05_modules--working-with-modules)
+- [aws_sample_dev — AWS Node.js & RDS MySQL Deployment](#aws_sample_dev--aws-nodejs--rds-mysql-deployment)
 - [Common Terraform commands](#common-terraform-commands)
 
 ## Repo structure
@@ -20,6 +21,7 @@ A beginner-friendly sandbox repo for learning Terraform one small section at a t
 - `03_vars-outputs/`: Practice using input variables, locals, and outputs to make your config dynamic.
 - `04_giving_values/`: Explore different ways to provide values to variables and understand their precedence.
 - `05_modules/`: Understand how to encapsulate and reuse code with modules, outputs, and inputs.
+- `aws_sample_dev/`: Real-world AWS sandbox containing an EC2 instance (hosting a Node.js server), an RDS MySQL database, and S3 assets.
 
 ## Prerequisites
 
@@ -259,6 +261,69 @@ From the repo root:
 
 ```powershell
 $dir = ".\05_modules"
+
+terraform -chdir=$dir init
+terraform -chdir=$dir plan
+terraform -chdir=$dir apply
+```
+
+## aws_sample_dev — AWS Node.js & RDS MySQL Deployment
+
+### What it does
+
+This workspace provisions a full multi-tier development environment on AWS:
+
+- **EC2 Instance (`aws_instance`)**: Hosts a sample Node.js server running in Ubuntu 24.04.
+  - Boots up using custom `user_data` that auto-installs Node.js, `npm`, and `pm2`.
+  - Clones the target Node.js/MySQL repo, writes a `.env` file referencing Terraform configuration variables, and starts/saves the process via PM2.
+  - Uses `user_data_replace_on_change = true` to force recreation if the bootstrap script changes.
+- **RDS MySQL Database (`aws_db_instance`)**: Instantiates a managed MySQL instance class (`db.t3.micro`) using custom input variables for db administrator credentials.
+- **RDS Security Group (`aws_security_group`)**: Configured to restrict MySQL database access (port 3306) to only receive connections from the EC2 instance's security group.
+- **S3 Bucket (`aws_s3_bucket`) & S3 Objects (`aws_s3_object`)**: Creates a bucket `nodejs-bucket0123` and uploads the contents of a local `\images` folder using a `for_each` loop combined with `fileset()`.
+- **AWS Security Group Module (`tf_module_ec2_sg`)**: Implements the official community module `terraform-aws-modules/security-group/aws` to manage the EC2 instance's ingress/egress rules.
+
+### Key files
+
+- [provider.tf](file:///c:/Users/jingc/Desktop/repo/learning-terraform/aws_sample_dev/provider.tf): Configures the AWS provider and targets `us-east-2`.
+- [variables.tf](file:///c:/Users/jingc/Desktop/repo/learning-terraform/aws_sample_dev/variables.tf): Declares variable schemas and defaults (such as DB credentials).
+- [s3.tf](file:///c:/Users/jingc/Desktop/repo/learning-terraform/aws_sample_dev/s3.tf): Defines S3 buckets and utilizes `for_each` to upload files in the local directory.
+- [rds.tf](file:///c:/Users/jingc/Desktop/repo/learning-terraform/aws_sample_dev/rds.tf): Sets up the database instance, security group restrictions, and output values.
+- [ec2.tf](file:///c:/Users/jingc/Desktop/repo/learning-terraform/aws_sample_dev/ec2.tf): Provisions the compute instance, the `user_data` script, and defines the EC2 security group module.
+
+### Key lessons & troubleshooting notes
+
+#### 1. Security Group Module Predefined Rule Names
+When using the community `terraform-aws-modules/security-group/aws` module, rule keys are mapped internally within `rules.tf`. 
+- **Gotcha:** If you supply a rule key that does not exist in the map (for example, using `http-443-tcp` instead of `https-443-tcp`, or `all-all-0-0` instead of `all-all`), Terraform will fail with an **`Invalid index`** error:
+  `The given key does not identify an element in this collection value.`
+- **Rule Syntax Options:** Inside `ingress_with_cidr_blocks`, you can declare either full custom attributes (`from_port`, `to_port`, `protocol`) OR reference predefined rules directly:
+  ```hcl
+  ingress_with_cidr_blocks = [
+    {
+      from_port   = 3000
+      to_port     = 3000
+      protocol    = "tcp"
+      cidr_blocks = "0.0.0.0/0"
+    },
+    {
+      rule        = "https-443-tcp"
+      cidr_blocks = "0.0.0.0/0"
+    }
+  ]
+  ```
+
+#### 2. Cross-Resource References
+To dynamically secure the database, we restrict the database security group ingress rule so that it only accepts traffic coming from the security group of our EC2 server:
+```hcl
+security_groups = [module.tf_module_ec2_sg.security_group_id]
+```
+
+### Workflow
+
+From the repo root:
+
+```powershell
+$dir = ".\aws_sample_dev"
 
 terraform -chdir=$dir init
 terraform -chdir=$dir plan
